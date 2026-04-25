@@ -7,11 +7,18 @@ la aplicación de reloj usando Tkinter.
 
 from __future__ import annotations
 
+# Evitar escritura de archivos bytecode (`__pycache__`) al ejecutar.
+# Debe establecerse antes de importar módulos que generen cachés.
+import os
+import sys
+os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+sys.dont_write_bytecode = True
+
 from datetime import datetime
 import tkinter as tk
 from typing import List
 
-from config.settings import ClockSettings
+from src.config.settings import ClockSettings
 from src.core.clock_structure import ClockStructure
 from src.core.hand_factory import HandFactory
 from src.services.database_service import DatabaseService
