@@ -13,6 +13,7 @@ from typing import Any
 
 from config.settings import ClockSettings
 from src.core.clock_structure import ClockStructure
+from src.services.database_service import DatabaseService
 from src.ui.clock_face import ClockFace
 
 
@@ -29,6 +30,18 @@ class ClockController:
         self.model = model
         self.view = view
         self.settings = settings
+        # Inicializar servicio de base de datos (singleton)
+        self.db = DatabaseService()
+        # Asegurarse de que las tablas existen y registrar inicio
+        try:
+            self.db.create_tables()
+            self.db.save_log("Clock System Started")
+        except Exception:
+            # No detener la aplicación si la BD falla; en producción registrar el error
+            pass
+
+        # Histórico del valor de hora para detectar ciclo completo (wrap-around)
+        self._prev_hour_value: int | None = None
 
     def update_time(self) -> None:
         """Actualizar la posición de las manecillas según la hora actual.
@@ -54,6 +67,14 @@ class ClockController:
         # Convertir a entero cercano y asegurarnos rango 0..59
         hour_value: int = int(round(hour_position)) % 60
 
+        # Detectar wrap-around de la manecilla de la hora (final de ciclo de 12 horas)
+        if getattr(self, "_prev_hour_value", None) is not None:
+            if self._prev_hour_value > hour_value:
+                try:
+                    self.db.save_log("Full 12-hour cycle completed")
+                except Exception:
+                    pass
+
         # Actualizar las manecillas en la vista
         for hand in getattr(self.view, "hands", []):
             name = hand.__class__.__name__.lower()
@@ -70,6 +91,9 @@ class ClockController:
             # Enlazar la manecilla al TimePoint correspondiente
             hand.current_point = tp
             hand.current_value = tp.value
+
+        # Actualizar histórico de hora
+        self._prev_hour_value = hour_value
 
         # Pedir a la vista que redibuje
         self.view.update_clock_graphics()
