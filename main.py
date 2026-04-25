@@ -14,6 +14,7 @@ from typing import List
 from config.settings import ClockSettings
 from src.core.clock_structure import ClockStructure
 from src.core.hand_factory import HandFactory
+from src.services.database_service import DatabaseService
 from src.ui.clock_face import ClockFace
 from src.controllers.clock_controller import ClockController
 
@@ -80,9 +81,27 @@ def main() -> None:
     controller = ClockController(model=model, view=view, settings=settings)
     controller.start()
 
+    # Handler para cierre ordenado: cerrar DatabaseService antes de destruir la ventana
+    def on_close() -> None:
+        try:
+            DatabaseService().close()
+        except Exception:
+            pass
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
     # Ejecutar la interfaz
     root.mainloop()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # Cierre ordenado si el usuario interrumpe desde la terminal
+        try:
+            DatabaseService().close()
+        except Exception:
+            pass
+        print("Interrupted by user, exiting.")
