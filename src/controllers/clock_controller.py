@@ -44,63 +44,67 @@ class ClockController:
         self._prev_hour_value: int | None = None
 
     def update_time(self) -> None:
-        """Actualizar la posición de las manecillas según la hora actual.
+        """Advance hands using their `move()` methods and handle overflows.
 
-        Pasos:
-        1. Obtener la hora actual con `datetime.now()`.
-        2. Mapear segundos, minutos y horas a valores 0..59.
-        3. Obtener los `_TimePoint` correspondientes desde `ClockStructure`.
-        4. Actualizar `current_point` y `current_value` de cada `ClockHand` en la vista.
-        5. Llamar a la vista para redibujar (`update_clock_graphics`).
-        6. Reprogramar la siguiente actualización usando `after`.
+        The visual movement is driven by stepping the `SecondHand` each
+        tick. Overflows propagate to `MinuteHand` and `HourHand` via their
+        `move()` return values and the circular `ClockStructure`. No digital
+        labels are produced; positions come solely from the circular list.
         """
 
-        now = datetime.now()
-
-        # Valores directos
-        second_value: int = now.second
-        minute_value: int = now.minute
-
-        # Mapear horas a la escala 0..59: cada hora = 5 unidades, además
-        # incorporamos el avance por minutos (fraccional).
-        hour_position = (now.hour % 12) * 5 + (now.minute / 60.0) * 5
-        # Convertir a entero cercano y asegurarnos rango 0..59
-        hour_value: int = int(round(hour_position)) % 60
-
-        # Detectar wrap-around de la manecilla de la hora (final de ciclo de 12 horas)
-        if getattr(self, "_prev_hour_value", None) is not None:
-            if self._prev_hour_value > hour_value:
-                try:
-                    self.db.save_log("Full 12-hour cycle completed")
-                except Exception:
-                    pass
-
-        # Actualizar las manecillas en la vista
+        # Resolve references to hands by type
+        second_hand = None
+        minute_hand = None
+        hour_hand = None
         for hand in getattr(self.view, "hands", []):
-            name = hand.__class__.__name__.lower()
-            if "second" in name:
-                tp = self.model.get_point(second_value)
-            elif "minute" in name:
-                tp = self.model.get_point(minute_value)
-            elif "hour" in name:
-                tp = self.model.get_point(hour_value)
-            else:
-                # Si no reconocemos el tipo, saltamos
-                continue
+            cls_name = hand.__class__.__name__.lower()
+            if "second" in cls_name:
+                second_hand = hand
+            elif "minute" in cls_name:
+                minute_hand = hand
+            elif "hour" in cls_name:
+                hour_hand = hand
 
-            # Enlazar la manecilla al TimePoint correspondiente
-            hand.current_point = tp
-            hand.current_value = tp.value
+        # Step the second hand one tick; propagate overflow to minute
+        second_overflow = False
+        if second_hand is not None:
+            try:
+                second_overflow = second_hand.move(1)
+            except Exception:
+                second_overflow = False
 
-        # Actualizar histórico de hora
-        self._prev_hour_value = hour_value
+        minute_overflow = False
+        if second_overflow and minute_hand is not None:
+            try:
+                minute_overflow = minute_hand.move(1)
+            except Exception:
+                minute_overflow = False
 
-        # Pedir a la vista que redibuje
-        self.view.update_clock_graphics()
+        if minute_overflow and hour_hand is not None:
+            # detect previous hour value to identify wrap-around
+            prev_hour = hour_hand.current_value
+            try:
+                hour_hand.move(1)
+            except Exception:
+                pass
+            try:
+                if prev_hour is not None and hour_hand.current_value < prev_hour:
+                    # full 12-hour cycle completed
+                    try:
+                        self.db.save_log("Full 12-hour cycle completed")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
-        # Reprogramar la siguiente actualización
+        # Redraw view according to updated hand positions
+        try:
+            self.view.update_clock_graphics()
+        except Exception:
+            pass
+
+        # Schedule next update
         refresh_ms = int(self.settings.REFRESH_RATE)
-        # `after` acepta milisegundos; usamos la vista (frame) para programar
         self.view.after(refresh_ms, self.update_time)
 
     def start(self) -> None:
