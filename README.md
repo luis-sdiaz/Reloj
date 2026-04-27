@@ -112,4 +112,3 @@ La ventana principal muestra el reloj; el menú `App → Settings` abre el diál
 Desarrollado por: **Luis Sebastian Diaz**
 
 Facultad de Ingeniería de Software — Universidad Cooperativa de Colombia
-Facultad de Ingeniería de Software — Universidad Cooperativa de Colombia
