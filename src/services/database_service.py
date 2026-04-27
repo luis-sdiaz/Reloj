@@ -42,16 +42,45 @@ class DatabaseService:
 
     def create_tables(self) -> None:
         """Create required tables (simple `logs` table)."""
-
-        sql = """
+        cur = self.conn.cursor()
+        cur.execute(
+            """
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
             event_description TEXT NOT NULL
         );
         """
+        )
+        # settings table for simple key/value pairs
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+        """
+        )
+        self.conn.commit()
+
+    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Return the string value for `key` or `default` if missing."""
+
         cur = self.conn.cursor()
-        cur.execute(sql)
+        cur.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+        return default
+
+    def set_setting(self, key: str, value: str) -> None:
+        """Insert or update a setting key/value pair."""
+
+        cur = self.conn.cursor()
+        cur.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
         self.conn.commit()
 
     def save_log(self, description: str) -> int:

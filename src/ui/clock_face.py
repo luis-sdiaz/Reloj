@@ -98,6 +98,19 @@ class ClockFace(tk.Frame):
         ctx.set_line_width(max(0.35, half_width * 0.10))
         ctx.stroke()
 
+    def _hex_to_rgb(self, hex_color: str) -> Tuple[float, float, float]:
+        """Convert #RRGGBB to normalized 0..1 RGB tuple."""
+        if not hex_color:
+            return (0.04, 0.66, 0.86)
+        c = hex_color.lstrip('#')
+        try:
+            r = int(c[0:2], 16) / 255.0
+            g = int(c[2:4], 16) / 255.0
+            b = int(c[4:6], 16) / 255.0
+            return (r, g, b)
+        except Exception:
+            return (0.04, 0.66, 0.86)
+
     def _draw_center_cap(self, ctx: cairo.Context, radius: float) -> None:
         grad = cairo.RadialGradient(-radius * 0.15, -radius * 0.15, 1, 0, 0, radius)
         grad.add_color_stop_rgb(0.0, 0.96, 0.96, 0.96)
@@ -199,10 +212,11 @@ class ClockFace(tk.Frame):
         inner_short = radius * 0.76
         ctx.set_source_rgb(0.06, 0.06, 0.06)
         ctx.set_line_cap(cairo.LINE_CAP_BUTT)
-        for i in range(ticks):
-            frac = i / float(ticks - 1)
+        # iterate values 0..60 inclusive so we can place a long tick at 0
+        for val in range(0, ticks + 1):
+            frac = val / float(ticks)
             th = math.pi + frac * math.pi  # from pi (9 o'clock) to 2pi (3 o'clock)
-            if (i + 1) % 10 == 0:
+            if val % 10 == 0:
                 iw = inner_long
                 lw = 1.0
             else:
@@ -370,10 +384,25 @@ class ClockFace(tk.Frame):
         except Exception:
             ctx.select_font_face("Serif", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         ctx.set_font_size(r * 0.08)
-        xb, yb, wlogo, hlogo, xa, ya = ctx.text_extents('Mebus')
+        # allow logo override from DB
+        try:
+            from src.services.database_service import DatabaseService
+
+            db = DatabaseService()
+            logo_txt = db.get_setting('logo_name')
+        except Exception:
+            logo_txt = None
+        if not logo_txt and getattr(self, 'settings', None):
+            try:
+                logo_txt = getattr(self.settings, 'get_default_theme', lambda: {})().get('logo_name')
+            except Exception:
+                logo_txt = None
+        if not logo_txt:
+            logo_txt = 'Mebus'
+        xb, yb, wlogo, hlogo, xa, ya = ctx.text_extents(logo_txt)
         ctx.set_source_rgb(0.06, 0.06, 0.06)
         ctx.move_to(self.center_x - wlogo / 2.0, self.center_y - r * 0.18)
-        ctx.show_text('Mebus')
+        ctx.show_text(logo_txt)
         # tagline removed for a cleaner look
 
         # animated subdial hands
@@ -459,7 +488,18 @@ class ClockFace(tk.Frame):
         ctx.save()
         ctx.translate(self.center_x, self.center_y)
         ctx.rotate(ang_s)
-        ctx.set_source_rgb(0.04, 0.66, 0.86)
+        # allow override from database or settings
+        try:
+            from src.services.database_service import DatabaseService
+
+            db = DatabaseService()
+            hex_col = db.get_setting('second_hand_color')
+        except Exception:
+            hex_col = None
+        if not hex_col and getattr(self, 'settings', None):
+            hex_col = getattr(self.settings, 'HAND_COLORS', {}).get('second')
+        rcol, gcol, bcol = self._hex_to_rgb(hex_col)
+        ctx.set_source_rgb(rcol, gcol, bcol)
         # second hand line width
         ctx.set_line_width(max(0.6, r * 0.003))
         ctx.set_line_cap(cairo.LINE_CAP_ROUND)

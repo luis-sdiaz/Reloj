@@ -43,6 +43,7 @@ from src.core.hand_factory import HandFactory
 from src.services.database_service import DatabaseService
 from src.ui.clock_face import ClockFace
 from src.controllers.clock_controller import ClockController
+from src.ui.settings_dialog import SettingsDialog
 
 
 def main() -> None:
@@ -111,6 +112,32 @@ def main() -> None:
 
     view = ClockFace(root, settings, hands)
     view.pack(expand=True, fill=tk.BOTH)
+
+    # Add simple menu with Settings entry
+    menubar = tk.Menu(root)
+    root.config(menu=menubar)
+    app_menu = tk.Menu(menubar, tearoff=False)
+    menubar.add_cascade(label='App', menu=app_menu)
+
+    def _open_settings() -> None:
+        def _apply(changes: dict) -> None:
+            # update in-memory settings for immediate effect
+            try:
+                if 'second_hand_color' in changes and hasattr(settings, 'HAND_COLORS'):
+                    settings.HAND_COLORS['second'] = changes['second_hand_color']
+            except Exception:
+                pass
+            try:
+                view.update_clock_graphics()
+            except Exception:
+                pass
+
+        try:
+            SettingsDialog(root, apply_callback=_apply)
+        except Exception:
+            pass
+
+    app_menu.add_command(label='Settings', command=_open_settings)
 
     try:
         with runtime_log.open("a", encoding="utf-8") as fh:
