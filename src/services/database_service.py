@@ -1,10 +1,6 @@
-"""Servicio de persistencia usando SQLite.
+"""Simple SQLite persistence service.
 
-Este módulo expone `DatabaseService`, un singleton que gestiona la
-conexión a la base de datos `data/clock_data.db` y ofrece métodos para
-crear tablas e insertar logs de eventos.
-
-Las explicaciones están en español; los identificadores en inglés.
+Provides `DatabaseService` singleton for a local DB at `src/data/clock_data.db`.
 """
 
 from __future__ import annotations
@@ -16,12 +12,7 @@ from typing import Optional
 
 
 class DatabaseService:
-    """Singleton que gestiona la conexión a SQLite.
-
-    Atributos:
-        db_path: ruta al archivo de base de datos.
-        conn: objeto sqlite3.Connection.
-    """
+    """Singleton managing a SQLite connection and simple log table."""
 
     _instance: Optional["DatabaseService"] = None
 
@@ -34,22 +25,23 @@ class DatabaseService:
         if getattr(self, "_initialized", False):
             return
 
-        # Determinar la ruta de la base de datos (data/clock_data.db)
-        base = Path(db_path) if db_path else Path("data") / "clock_data.db"
+        # DB file path (default: src/data/clock_data.db)
+        if db_path:
+            base = Path(db_path)
+        else:
+            base = Path(__file__).resolve().parents[1] / "data" / "clock_data.db"
+
         base.parent.mkdir(parents=True, exist_ok=True)
         self.db_path: Path = base
 
-        # Conectar a SQLite (check_same_thread=False permite uso desde hilos distintos si fuera necesario)
+        # Connect to SQLite (allow access from other threads if needed)
         self.conn: sqlite3.Connection = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
 
         self._initialized = True
 
     def create_tables(self) -> None:
-        """Crea las tablas necesarias en la base de datos.
-
-        Crea la tabla `logs` con columnas: id (PK), timestamp y event_description.
-        """
+        """Create required tables (simple `logs` table)."""
 
         sql = """
         CREATE TABLE IF NOT EXISTS logs (
@@ -63,14 +55,7 @@ class DatabaseService:
         self.conn.commit()
 
     def save_log(self, description: str) -> int:
-        """Inserta un registro en la tabla `logs`.
-
-        Args:
-            description: descripción del evento a almacenar.
-
-        Returns:
-            El id del registro insertado.
-        """
+        """Insert an event log and return its id."""
 
         ts = datetime.utcnow().isoformat()
         cur = self.conn.cursor()
@@ -82,7 +67,7 @@ class DatabaseService:
         return cur.lastrowid
 
     def close(self) -> None:
-        """Cierra la conexión a la base de datos."""
+        """Close the database connection."""
 
         try:
             self.conn.close()

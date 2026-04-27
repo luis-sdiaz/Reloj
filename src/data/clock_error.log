@@ -1,0 +1,100 @@
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "c:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "c:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 73, in __init__
+    self._create_static_surface()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "c:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 93, in _create_static_surface
+    ctx.set_antialias(cairo.ANTIALIAS)
+                      ^^^^^^^^^^^^^^^
+AttributeError: module 'cairo' has no attribute 'ANTIALIAS'
+
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "c:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "c:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 73, in __init__
+    self._create_static_surface()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "c:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 93, in _create_static_surface
+    ctx.set_antialias(cairo.ANTIALIAS)
+                      ^^^^^^^^^^^^^^^
+AttributeError: module 'cairo' has no attribute 'ANTIALIAS'
+
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 60, in __init__
+    self._create_static_surface()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 213, in _create_static_surface
+    ctx.translate(center_x, center_y)
+                  ^^^^^^^^
+NameError: name 'center_x' is not defined. Did you mean: 'self.center_x'?
+
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 60, in __init__
+    self._create_static_surface()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 212, in _create_static_surface
+    xb, yb, wtxt, htxt, xa, ya = ctx.text_extents(label)
+                                                  ^^^^^
+NameError: name 'label' is not defined
+
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 60, in __init__
+    self._create_static_surface()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 213, in _create_static_surface
+    ctx.set_source_rgb(*shadow_color)
+                        ^^^^^^^^^^^^
+NameError: name 'shadow_color' is not defined
+
+--- Exception on startup ---
+Traceback (most recent call last):
+  File "C:\Users\luis_diaz\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 116, in _cnfmerge
+    cnf.update(c)
+    ~~~~~~~~~~^^^
+TypeError: 'HourHand' object is not iterable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\luis_diaz\Desktop\Reloj\main.py", line 125, in main
+    view = ClockFace(root, settings, hands)
+  File "C:\Users\luis_diaz\Desktop\Reloj\src\ui\clock_face.py", line 38, in __init__
+    super().__init__(master, *args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\luis_diaz\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 3346, in __init__
+    cnf = _cnfmerge((cnf, kw))
+  File "C:\Users\luis_diaz\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 119, in _cnfmerge
+    for k, v in c.items():
+                ^^^^^^^
+AttributeError: 'HourHand' object has no attribute 'items'
+

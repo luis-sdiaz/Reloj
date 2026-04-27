@@ -1,12 +1,6 @@
-"""Fábrica de manecillas y lógica de movimiento.
+"""Factory for clock hands and simple movement logic.
 
-Este módulo implementa el patrón Factory Method para crear
-manecillas (`ClockHand`) y sus subclases (`HourHand`, `MinuteHand`,
-`SecondHand`). Las manecillas se integran con `ClockStructure` apuntando
-cada una a un `_TimePoint` de la lista circular.
-
-Las explicaciones están en español; nombres de clases y variables en
-inglés según la convención del proyecto.
+Creates `ClockHand` instances (Hour/Minute/Second) linked to `ClockStructure`.
 """
 
 from __future__ import annotations
@@ -18,55 +12,51 @@ from src.core.clock_structure import ClockStructure
 
 
 class ClockHand(ABC):
-    """Clase base abstracta para una manecilla del reloj.
+    """Abstract base class for a clock hand.
 
-    Atributos:
-        length: longitud visual de la manecilla.
-        color: color de la manecilla (hex o nombre).
-        current_point: referencia al `_TimePoint` dentro de `ClockStructure`.
-        current_value: valor entero actual (0..59) obtenido de `current_point`.
+    Attributes:
+        length: visual length of the hand.
+        color: hand color (hex or name).
+        current_point: linked `_TimePoint` in `ClockStructure`.
+        current_value: current integer value (0..59).
     """
 
     def __init__(self, length: int, color: str, clock_structure: ClockStructure, start_value: int = 0) -> None:
         self.length: int = length
         self.color: str = color
-        # `current_point` apunta a un _TimePoint dentro de ClockStructure
         self.current_point = clock_structure.get_point(start_value)
         self.current_value: int = self.current_point.value
 
     @abstractmethod
     def move(self, steps: int = 1) -> bool:
-        """Avanza la manecilla `steps` pasos.
+        """Advance the hand by `steps` points.
 
-        Retorna True si la manecilla completa una vuelta y debe notificar
-        al siguiente nivel (ej. seconds -> minutes).
+        Returns True when the hand completes a full rotation.
         """
 
 
 class SecondHand(ClockHand):
-    """Manecilla de segundos.
+    """Second hand.
 
-    Cada vez que completa una vuelta (vuelve a 0) retorna True para indicar
-    que el minuto debe avanzar.
+    Returns True when a full rotation occurs (minute should advance).
     """
 
     def move(self, steps: int = 1) -> bool:
         overflow = False
         for _ in range(steps):
-            # Avanza un punto en la lista circular
+            # advance one point in the circular list
             self.current_point = self.current_point.next_point  # type: ignore[attr-defined]
             self.current_value = self.current_point.value
-            # Si devuelve a 0, se completó una vuelta
+            # full rotation when value is 0
             if self.current_value == 0:
                 overflow = True
         return overflow
 
 
 class MinuteHand(ClockHand):
-    """Manecilla de minutos.
+    """Minute hand.
 
-    Cuando completa una vuelta (vuelve a 0) retorna True para indicar que
-    la hora debe avanzar.
+    Returns True when a full rotation occurs (hour should advance).
     """
 
     def move(self, steps: int = 1) -> bool:
@@ -80,17 +70,13 @@ class MinuteHand(ClockHand):
 
 
 class HourHand(ClockHand):
-    """Manecilla de horas.
+    """Hour hand.
 
-    En este diseño simple la `HourHand` avanza un punto por cada 60 minutos
-    (es decir, es avanzada externamente cuando `MinuteHand` retorna overflow).
-    Dado que la estructura tiene 60 puntos, el movimiento de hora será
-    visualmente acorde si se mueve 1/5 de vuelta por cada 12 horas en una
-    representación más completa; aquí mantenemos un avance por overflow.
+    In this design the hour hand advances externally when minute overflows.
     """
 
     def move(self, steps: int = 1) -> bool:
-        # HourHand no propaga un overflow superior en este diseño.
+        # hour hand does not propagate overflow
         for _ in range(steps):
             self.current_point = self.current_point.next_point  # type: ignore[attr-defined]
             self.current_value = self.current_point.value
@@ -98,24 +84,24 @@ class HourHand(ClockHand):
 
 
 class HandFactory:
-    """Factory para crear instancias de manecillas.
+    """Factory to create hand instances.
 
-    Uso:
+    Usage:
         hand = HandFactory.create_hand("second", clock_structure, start_value=0, length=90, color="#ff0000")
     """
 
     @staticmethod
     def create_hand(hand_type: str, clock_structure: ClockStructure, start_value: int = 0, **kwargs: Any) -> ClockHand:
-        """Crea una manecilla del tipo solicitado.
+        """Create a hand of the requested type.
 
         Args:
-            hand_type: 'hour' | 'minute' | 'second' (case-insensitive).
-            clock_structure: instancia de `ClockStructure` para enlazar la manecilla.
-            start_value: punto inicial (0..59) dentro de la estructura.
-            kwargs: parámetros opcionales como `length` y `color`.
+            hand_type: 'hour' | 'minute' | 'second'.
+            clock_structure: ClockStructure instance to bind the hand.
+            start_value: initial point (0..59).
+            kwargs: optional args like `length` and `color`.
 
         Returns:
-            Instancia de `ClockHand` correspondiente.
+            ClockHand instance.
         """
 
         t = hand_type.strip().lower()

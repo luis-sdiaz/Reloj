@@ -1,7 +1,6 @@
-"""Funciones geométricas para el reloj.
+"""Geometric utilities for the clock.
 
-Contiene utilidades para convertir ángulos en coordenadas cartesianas
-usadas por la interfaz gráfica.
+Utilities to convert angles into Cartesian coordinates used by the UI.
 """
 
 from math import cos, radians, sin
@@ -9,21 +8,19 @@ from typing import Tuple
 
 
 def get_hand_coordinates(angle: float, radius: float, center: Tuple[float, float]) -> Tuple[float, float]:
-    """Convierte un ángulo en coordenadas (x, y) del extremo de la manecilla.
+    """Convert an angle to (x, y) coordinates at the hand tip.
 
-    El ángulo se interpreta en grados con 0 en las 12 en punto y aumenta
-    en sentido horario (como en un reloj analógico).
+    Angle is given in degrees with 0 at 12:00 and increases clockwise.
 
     Args:
-        angle: ángulo en grados (0..360), 0 = 12:00.
-        radius: longitud desde el centro hasta el extremo.
-        center: tupla (x, y) del centro.
+        angle: degrees (0..360), 0 == 12:00.
+        radius: distance from center to tip.
+        center: (x, y) center coordinates.
 
     Returns:
-        Tupla (x, y) de coordenadas del extremo de la manecilla.
+        (x, y) coordinates of the hand tip.
     """
 
-    # Convertimos a radianes ajustando para que 0 grados esté en 12:00
     rad = radians(angle - 90)
     cx, cy = center
     x = cx + radius * cos(rad)

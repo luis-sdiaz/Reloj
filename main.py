@@ -1,20 +1,39 @@
-"""Entry point for the Reloj project.
+"""Entry point for the clock project.
 
-Este módulo integra el modelo (`ClockStructure`), la vista
-(`ClockFace`) y el controlador (`ClockController`) para ejecutar
-la aplicación de reloj usando Tkinter.
+Initializes the model, view and controller and launches the Tkinter app.
 """
 
 from __future__ import annotations
 
-# Evitar escritura de archivos bytecode (`__pycache__`) al ejecutar.
-# Debe establecerse antes de importar módulos que generen cachés.
 import os
 import sys
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 sys.dont_write_bytecode = True
 
 from datetime import datetime
+from pathlib import Path
+import signal
+import traceback
+
+def _signal_handler(signum, frame):
+    try:
+        Path("src/data").mkdir(parents=True, exist_ok=True)
+        with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+            fh.write(f"[SIGNAL] Received signal: {signum}\n")
+            fh.write("[SIGNAL] Stack at signal:\n")
+            fh.write("".join(traceback.format_stack(frame)))
+            fh.write("\n")
+    except Exception:
+        pass
+
+    try:
+        signal.signal(signal.SIGINT, _signal_handler)
+        try:
+            signal.signal(signal.SIGTERM, _signal_handler)
+        except Exception:
+            pass
+    except Exception:
+        pass
 import tkinter as tk
 from typing import List
 
@@ -27,28 +46,30 @@ from src.controllers.clock_controller import ClockController
 
 
 def main() -> None:
-    """Inicializa componentes y arranca la aplicación Tkinter.
+    """Initialize components and start the Tkinter application.
 
-    Pasos:
-    - Crear `ClockStructure` (modelo).
-    - Crear manecillas usando `HandFactory`.
-    - Crear `ClockFace` (vista) y empaquetarla en la ventana principal.
-    - Crear `ClockController` y arrancar el ciclo de actualización.
+    Creates model, hands, view and controller and enters mainloop.
     """
+
+    runtime_log = Path("src/data/clock_runtime.log")
+    try:
+        runtime_log.parent.mkdir(parents=True, exist_ok=True)
+        with runtime_log.open("a", encoding="utf-8") as fh:
+            fh.write("[MAIN] Starting main()\n")
+    except Exception:
+        pass
 
     settings = ClockSettings()
 
-    # Modelo
     model = ClockStructure()
 
-    # Valores iniciales basados en la hora actual
     now = datetime.now()
     second_start = now.second
     minute_start = now.minute
     hour_pos = (now.hour % 12) * 5 + (now.minute / 60.0) * 5
     hour_start = int(round(hour_pos)) % 60
 
-    # Crear manecillas con HandFactory; usamos longitudes relativas y colores
+    # create hands via HandFactory
     second_hand = HandFactory.create_hand(
         "second",
         model,
@@ -75,40 +96,108 @@ def main() -> None:
 
     hands: List = [hour_hand, minute_hand, second_hand]
 
-    # Vista
+    # initialize DB before UI
+    try:
+        DatabaseService().create_tables()
+        DatabaseService().save_log("Clock System Started")
+    except Exception:
+        pass
+
     root = tk.Tk()
-    root.title("Proyecto Reloj")
-    w, h = settings.WINDOW_SIZE
-    root.geometry(f"{w}x{h}")
+    root.title("Clock Project")
+    # fixed initial window size
+    root.geometry("600x600")
+    root.minsize(600, 600)
 
     view = ClockFace(root, settings, hands)
     view.pack(expand=True, fill=tk.BOTH)
 
-    # Controlador
+    try:
+        with runtime_log.open("a", encoding="utf-8") as fh:
+            fh.write("[MAIN] View packed\n")
+    except Exception:
+        pass
+
     controller = ClockController(model=model, view=view, settings=settings)
     controller.start()
 
-    # Handler para cierre ordenado: cerrar DatabaseService antes de destruir la ventana
+    try:
+        with runtime_log.open("a", encoding="utf-8") as fh:
+            fh.write("[MAIN] Controller started\n")
+    except Exception:
+        pass
+
+    def _on_destroy(evt: tk.Event) -> None:
+        try:
+            with runtime_log.open("a", encoding="utf-8") as fh:
+                fh.write(f"[MAIN] Destroy event: widget={evt.widget} obj={repr(evt)}\n")
+        except Exception:
+            pass
+
+    root.bind("<Destroy>", _on_destroy)
+    view.canvas.bind("<Destroy>", _on_destroy)
+
     def on_close() -> None:
+        import traceback
         try:
             DatabaseService().close()
+        except Exception:
+            pass
+        try:
+            with runtime_log.open("a", encoding="utf-8") as fh:
+                fh.write("[MAIN] on_close invoked\n")
+                fh.write("[MAIN] on_close stack:\n")
+                fh.write("".join(traceback.format_stack()))
+                fh.write("\n")
         except Exception:
             pass
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)
 
-    # Ejecutar la interfaz
+    try:
+        with runtime_log.open("a", encoding="utf-8") as fh:
+            fh.write("[MAIN] Entering mainloop\n")
+    except Exception:
+        pass
     root.mainloop()
+    try:
+        with runtime_log.open("a", encoding="utf-8") as fh:
+            fh.write("[MAIN] mainloop exited\n")
+    except Exception:
+        pass
 
 
 if __name__ == '__main__':
+    import traceback
     try:
         main()
     except KeyboardInterrupt:
-        # Cierre ordenado si el usuario interrumpe desde la terminal
+        # log KeyboardInterrupt for diagnostics
+        try:
+            Path("src/data").mkdir(parents=True, exist_ok=True)
+            with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                fh.write("[MAIN] KeyboardInterrupt caught\n")
+                import traceback
+
+                fh.write(traceback.format_exc())
+                fh.write("\n")
+        except Exception:
+            pass
+        # tidy shutdown when user interrupts from terminal
         try:
             DatabaseService().close()
         except Exception:
             pass
         print("Interrupted by user, exiting.")
+    except Exception:
+        # write traceback to file for diagnostics and re-raise
+        try:
+            Path("src/data").mkdir(parents=True, exist_ok=True)
+            with open("src/data/clock_error.log", "a", encoding="utf-8") as fh:
+                fh.write("--- Exception on startup ---\n")
+                fh.write(traceback.format_exc())
+                fh.write("\n")
+        except Exception:
+            pass
+        raise

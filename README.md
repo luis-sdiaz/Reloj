@@ -1,3 +1,3 @@
-# Proyecto Reloj - Taller de Ingeniería UCC
+# Clock Project - UCC Engineering Workshop
 
-Breve descripción: Proyecto para implementar un reloj usando Listas Circulares Doblemente Enlazadas. Este repositorio contiene la estructura inicial y archivos base; la lógica se implementará en iteraciones posteriores.
+Brief: Project to implement an analog clock using a circular doubly-linked list. This repository contains an initial structure and core files; logic will be expanded in further iterations.

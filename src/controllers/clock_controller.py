@@ -1,58 +1,47 @@
-"""Controller que une el modelo (ClockStructure) con la vista (ClockFace).
-
-La clase `ClockController` consulta la hora del sistema, mapea los
-valores a los puntos de la `ClockStructure` y actualiza la `ClockFace`.
-Las explicaciones están en español; el código y los identificadores en
-inglés según la convención del proyecto.
-"""
+"""Main controller: advance hands and update the view."""
 
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
+from pathlib import Path
+import traceback
 
-from config.settings import ClockSettings
+from src.config.settings import ClockSettings
 from src.core.clock_structure import ClockStructure
 from src.services.database_service import DatabaseService
 from src.ui.clock_face import ClockFace
 
 
 class ClockController:
-    """Controlador principal del reloj.
+    """Main clock controller.
 
     Args:
-        model: instancia de `ClockStructure` que contiene los `_TimePoint`.
-        view: instancia de `ClockFace` encargada del dibujo.
-        settings: instancia de `ClockSettings` con parámetros de refresco.
+        model: ClockStructure instance containing the `_TimePoint`s.
+        view: ClockFace instance responsible for rendering.
+        settings: ClockSettings instance with refresh parameters.
     """
 
     def __init__(self, model: ClockStructure, view: ClockFace, settings: ClockSettings) -> None:
         self.model = model
         self.view = view
         self.settings = settings
-        # Inicializar servicio de base de datos (singleton)
         self.db = DatabaseService()
-        # Asegurarse de que las tablas existen y registrar inicio
+        # ensure tables exist and log startup
         try:
             self.db.create_tables()
             self.db.save_log("Clock System Started")
         except Exception:
-            # No detener la aplicación si la BD falla; en producción registrar el error
+            # Do not stop the app if DB fails; in production log this error
             pass
 
-        # Histórico del valor de hora para detectar ciclo completo (wrap-around)
+        # previous hour value for detecting wrap-around
         self._prev_hour_value: int | None = None
 
     def update_time(self) -> None:
-        """Advance hands using their `move()` methods and handle overflows.
+        """Step second hand, propagate overflows, redraw view."""
 
-        The visual movement is driven by stepping the `SecondHand` each
-        tick. Overflows propagate to `MinuteHand` and `HourHand` via their
-        `move()` return values and the circular `ClockStructure`. No digital
-        labels are produced; positions come solely from the circular list.
-        """
-
-        # Resolve references to hands by type
+        # resolve references to hands by type
         second_hand = None
         minute_hand = None
         hour_hand = None
@@ -65,12 +54,20 @@ class ClockController:
             elif "hour" in cls_name:
                 hour_hand = hand
 
-        # Step the second hand one tick; propagate overflow to minute
+        # step the second hand one tick; propagate overflow to minute
         second_overflow = False
         if second_hand is not None:
             try:
                 second_overflow = second_hand.move(1)
             except Exception:
+                try:
+                    Path("src/data").mkdir(parents=True, exist_ok=True)
+                    with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                        fh.write("[CONTROLLER] Exception in second_hand.move:\n")
+                        fh.write(traceback.format_exc())
+                        fh.write("\n")
+                except Exception:
+                    pass
                 second_overflow = False
 
         minute_overflow = False
@@ -78,6 +75,14 @@ class ClockController:
             try:
                 minute_overflow = minute_hand.move(1)
             except Exception:
+                try:
+                    Path("src/data").mkdir(parents=True, exist_ok=True)
+                    with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                        fh.write("[CONTROLLER] Exception in minute_hand.move:\n")
+                        fh.write(traceback.format_exc())
+                        fh.write("\n")
+                except Exception:
+                    pass
                 minute_overflow = False
 
         if minute_overflow and hour_hand is not None:
@@ -86,29 +91,52 @@ class ClockController:
             try:
                 hour_hand.move(1)
             except Exception:
-                pass
+                try:
+                    Path("src/data").mkdir(parents=True, exist_ok=True)
+                    with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                        fh.write("[CONTROLLER] Exception in hour_hand.move:\n")
+                        fh.write(traceback.format_exc())
+                        fh.write("\n")
+                except Exception:
+                    pass
             try:
                 if prev_hour is not None and hour_hand.current_value < prev_hour:
                     # full 12-hour cycle completed
                     try:
                         self.db.save_log("Full 12-hour cycle completed")
                     except Exception:
-                        pass
+                        try:
+                            with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                                fh.write("[CONTROLLER] Failed to save full-cycle log\n")
+                        except Exception:
+                            pass
             except Exception:
-                pass
+                try:
+                    with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                        fh.write("[CONTROLLER] Exception detecting hour wrap:\n")
+                        fh.write(traceback.format_exc())
+                        fh.write("\n")
+                except Exception:
+                    pass
 
-        # Redraw view according to updated hand positions
+        # redraw view according to updated hand positions
         try:
             self.view.update_clock_graphics()
         except Exception:
-            pass
+            try:
+                with open("src/data/clock_runtime.log", "a", encoding="utf-8") as fh:
+                    fh.write("[CONTROLLER] Exception in update_clock_graphics:\n")
+                    fh.write(traceback.format_exc())
+                    fh.write("\n")
+            except Exception:
+                pass
 
         # Schedule next update
         refresh_ms = int(self.settings.REFRESH_RATE)
         self.view.after(refresh_ms, self.update_time)
 
     def start(self) -> None:
-        """Inicia el bucle de actualización del reloj."""
+        """Start the clock update loop."""
 
-        # Llamada inicial para comenzar el ciclo
+        # initial call to begin the update cycle
         self.update_time()

@@ -1,8 +1,4 @@
-"""ClockStructure: circular doubly linked list for time points.
-
-This module provides `ClockStructure`, a singleton that contains 60
-linked `_TimePoint` objects representing seconds/minutes (0..59).
-"""
+"""Circular doubly linked list of 60 time points used by the clock."""
 
 from __future__ import annotations
 
@@ -19,13 +15,7 @@ class ClockStructure:
     _instance: Optional["ClockStructure"] = None
 
     class _TimePoint:
-        """Nodo interno que representa un punto de tiempo.
-
-        Attributes:
-            value: integer value of the time point (0..59).
-            next_point: reference to the next _TimePoint.
-            previous_point: reference to the previous _TimePoint.
-        """
+        """Internal node representing a time point (0..59)."""
 
         __slots__ = ("value", "next_point", "previous_point")
 
