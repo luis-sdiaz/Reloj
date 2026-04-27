@@ -21,6 +21,9 @@ ENV/
 src/data/clock_data.db
 src/data/*.log
 
+# Ignore Python cache directories recursively
+**/__pycache__/
+
 # Distribution / packaging
 build/
 dist/
