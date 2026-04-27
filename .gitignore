@@ -17,6 +17,10 @@ ENV/
 .vscode/
 .idea/
 
+# Ignore local DB and runtime logs
+src/data/clock_data.db
+src/data/*.log
+
 # Distribution / packaging
 build/
 dist/
